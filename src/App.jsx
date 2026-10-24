@@ -107,6 +107,11 @@ const GUTTER = 20;
 // Loading intro: the intro starts as a thin bar that fills as the page loads, then opens up
 const INTRO_BAR_HEIGHT = 10;     // px, while loading
 const INTRO_HEIGHT = "66vh";     // once loaded
+// Small screens: text stacked above the image, so the intro opens to fit them instead of INTRO_HEIGHT.
+// Same breakpoint as the project pages (components/Content.jsx).
+const MOBILE_QUERY = "(max-width: 799px)";
+const isMobileScreen = () => window.matchMedia(MOBILE_QUERY).matches;
+const introHeight = () => (isMobileScreen() ? "auto" : INTRO_HEIGHT);
 const INTRO_OPEN_DURATION = 1.1;
 const INTRO_SPACE_BELOW = 80;    // px between the intro and the projects (same grey as the projects)
 // Portrait image on the right of the intro. Put it in public/images/ and set its path here, e.g.
@@ -163,8 +168,14 @@ const CARD_TOP_SPACE = 0;            // px of space between the nav and the card
 const CARD_ASPECT = "1200 / 1100";    // video shape (width / height): matches the source videos, so nothing is cropped
 const CARD_HEIGHT = "70%";           // of the space under the nav; the rest is where the neighbours peek in
 const CARD_MAX_HEIGHT = 760;         // px; on taller screens the card stays this tall, centred in the space
+// Small screens (MOBILE_QUERY): no pinning or stepping, the page just scrolls. The projects are a
+// plain list, each video above its own text, and each video plays while it's on screen.
+const MOBILE_VIDEO_PLAY = { start: "top 85%", end: "bottom 15%" }; // the stretch of screen a video plays in
 const CARDS_BACKGROUND = "#ffffff"; // project section background; neighbouring cards wash towards it
 const CARD_SHADOW = "20px 20px 39px rgba(0,0,0,0.3)";
+
+// Mobile list: project i's video and text as rows of the one grid column, video first
+const projectRows = (i) => ({ video: `${2 * i + 1} / 1`, text: `${2 * i + 2} / 1` });
 
 function App() {
   // What's open over the homepage: a project's index, 'about', or null for the homepage itself
@@ -172,6 +183,7 @@ function App() {
   // Which card the side indicator highlights, and whether the indicator is showing at all
   const [activeCard, setActiveCard] = useState(0);
   const [showIndicator, setShowIndicator] = useState(false);
+  const [isMobile, setIsMobile] = useState(isMobileScreen);
 
   const container = useRef(null);
   const projectView = useRef(null);
@@ -188,11 +200,15 @@ function App() {
   const introInRef = useRef(() => {});
   const introOutRef = useRef((done) => done());
   const introClosed = useRef(false); // intro folded away on the way to About
+  const loaded = useRef(false);      // the loading intro has played (see the rebuild in useGSAP)
   const dripSvg = useRef(null);
   const dripPath = useRef(null);
   const whiteout = useRef(null);
 
+  // Built for one layout: crossing the mobile breakpoint (isMobile) reverts everything and builds
+  // it again for the other one
   const { contextSafe } = useGSAP((context, contextSafe) => {
+    const mobile = isMobile;
     // Slides wait just off screen, on the side the opening swipe comes from
     gsap.set(['.slide1', '.slide2'], { xPercent: 0, yPercent: 0, [SLIDE_PROP]: -100 * SLIDE_SIGN });
 
@@ -208,9 +224,10 @@ function App() {
       paused: true,
     });
 
+    // (Mobile: as soon as they reach the bar, since the Work button stops the first card just under it)
     navTrigger.current = ScrollTrigger.create({
       trigger: '.projects',
-      start: "top top",
+      start: mobile ? `top ${NAV_BAR_HEIGHT + 1}px` : "top top",
       onEnter: () => showNav.current.play(),
       onLeaveBack: () => showNav.current.reverse(),
     });
@@ -222,10 +239,10 @@ function App() {
     const steps = Math.max(1, count - 1); // card changes, one screen of scroll each
     const offAxis = CARDS_DIRECTION === "horizontal" ? "xPercent" : "yPercent";
 
-    // The strip: card i sits i spacings after the first (below, or to the right). The ones beyond
-    // the neighbours are cut off by the section's overflow. A spacing is half the current card plus
-    // half a shrunk neighbour plus CARD_GAP, as a % of the wrapper (what xPercent/yPercent measure);
-    // measured rather than fixed since the card's size depends on the screen.
+    // The strip (desktop): card i sits i spacings after the first (below, or to the right). The ones
+    // beyond the neighbours are cut off by the section's overflow. A spacing is half the current card
+    // plus half a shrunk neighbour plus CARD_GAP, as a % of the wrapper (what xPercent/yPercent
+    // measure); measured rather than fixed since the card's size depends on the screen.
     const spacing = () => {
       const tilt = wrappers[0].querySelector('.projectTilt');
       const [card, frame] = offAxis === "yPercent"
@@ -233,7 +250,6 @@ function App() {
         : [tilt.offsetWidth, wrappers[0].offsetWidth];
       return ((card * (1 + CARD_SIDE_SCALE)) / 2 + CARD_GAP) / frame * 100;
     };
-    wrappers.forEach((wrapper, index) => gsap.set(wrapper, { xPercent: 0, yPercent: 0, [offAxis]: index * spacing() }));
 
     // Play only the card that's in front, and only while the section is on screen
     let current = 0;
@@ -244,13 +260,14 @@ function App() {
     // Left-hand text: every project's block is split into masked lines. Only the current block is
     // visible; changing project slides the current lines up out of their masks and the next
     // project's lines up into theirs (reversed when scrolling back up).
-    const textPanel = document.querySelector('.cardsText');
+    // (Mobile: every block shows, under its own video, so none of this applies.)
+    const textPanel = mobile ? [] : document.querySelector('.cardsText');
     const blocks = [...document.querySelectorAll('.textBlock')];
-    const splits = blocks.map((block) =>
+    const splits = mobile ? [] : blocks.map((block) =>
       SplitText.create(block.querySelectorAll('p, h1'), { type: "lines", mask: "lines", linesClass: "line", autoSplit: true }));
-    blocks.forEach((block, i) => gsap.set(block, { autoAlpha: i === 0 ? 1 : 0 }));
+    if (!mobile) blocks.forEach((block, i) => gsap.set(block, { autoAlpha: i === 0 ? 1 : 0 }));
     // Everything that animates in a block: its text lines, then the case study button
-    const textTargets = (i) => [...splits[i].lines, blocks[i].querySelector('.caseStudyButton')];
+    const textTargets = (i) => (mobile ? [] : [...splits[i].lines, blocks[i].querySelector('.caseStudyButton')]);
 
     let textTl;
     const showText = contextSafe((from, to) => {
@@ -263,59 +280,79 @@ function App() {
         .fromTo(textTargets(to), { yPercent: 110 * dir }, { yPercent: 0, ...TEXT_IN }, "-=0.15");
     });
 
-    // One timeline for the whole section: pinned for a screen height of scroll per card, and each
-    // step moves the strip along one card, shrinking the current card back as the next one grows. The section unpins as soon
-    // as the last card has arrived, so the footer follows straight on.
-    const timeline = gsap.timeline({
-      defaults: { ease: "none" },
-      scrollTrigger: {
-        trigger: '.projects',
-        pin: true,
-        start: "top top",
-        end: () => `+=${steps * 100}%`,
-        scrub: CARDS_SCRUB,
-        invalidateOnRefresh: true,
-        onUpdate: (self) => {
-          // Whichever card is more than halfway in counts as the current one
-          const next = Math.round(self.progress * steps);
-          if (next !== current) {
-            showText(current, next);
-            // Rewind the card being left, so it starts from the beginning when it's back in front
-            videos[current].pause();
-            videos[current].currentTime = 0;
-            current = next;
-            setActiveCard(next);
-            activeCardRef.current = next;
-            syncVideos();
-          }
+    let pinTrigger = null;
+    if (mobile) {
+      // Each video plays while it's on screen, and starts over the next time it comes back
+      wrappers.forEach((wrapper, i) => ScrollTrigger.create({
+        trigger: wrapper,
+        ...MOBILE_VIDEO_PLAY,
+        onToggle: (self) => {
+          if (self.isActive) videos[i].play().catch(() => {});
+          else { videos[i].pause(); videos[i].currentTime = 0; }
         },
-      },
-    });
+      }));
+      // No white wash over the other cards: they're all at full strength in a list
+      gsap.set(wrappers.map((w) => w.querySelector('.cardWhite')), { opacity: 0 });
+      // Scroll position that puts card i just under the nav (for the Work button)
+      cardTriggers.current = wrappers.map((wrapper) => ({
+        get start() { return wrapper.getBoundingClientRect().top + window.scrollY - NAV_BAR_HEIGHT; },
+      }));
+    } else {
+      // One timeline for the whole section: pinned for a screen height of scroll per card, and each
+      // step moves the strip along one card, shrinking the current card back as the next one grows. The section unpins as soon
+      // as the last card has arrived, so the footer follows straight on.
+      const timeline = gsap.timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: '.projects',
+          pin: true,
+          start: "top top",
+          end: () => `+=${steps * 100}%`,
+          scrub: CARDS_SCRUB,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            // Whichever card is more than halfway in counts as the current one
+            const next = Math.round(self.progress * steps);
+            if (next !== current) {
+              showText(current, next);
+              // Rewind the card being left, so it starts from the beginning when it's back in front
+              videos[current].pause();
+              videos[current].currentTime = 0;
+              current = next;
+              setActiveCard(next);
+              activeCardRef.current = next;
+              syncVideos();
+            }
+          },
+        },
+      });
 
-    // White layer over each video: clear on the current card, part way to white on the others
-    const whites = wrappers.map((w) => w.querySelector('.cardWhite'));
-    whites.forEach((white, index) => gsap.set(white, { opacity: index === 0 ? 0 : CARD_SIDE_WHITE }));
-    cards.forEach((card, index) => gsap.set(card, { scale: index === 0 ? 1 : CARD_SIDE_SCALE }));
+      // White layer over each video: clear on the current card, part way to white on the others
+      const whites = wrappers.map((w) => w.querySelector('.cardWhite'));
+      gsap.set(wrappers, { xPercent: 0, yPercent: 0, [offAxis]: (i) => i * spacing() });
+      whites.forEach((white, index) => gsap.set(white, { opacity: index === 0 ? 0 : CARD_SIDE_WHITE }));
+      cards.forEach((card, index) => gsap.set(card, { scale: index === 0 ? 1 : CARD_SIDE_SCALE }));
 
-    // One step per card change; the last card has no step of its own
-    cards.slice(0, -1).forEach((card, index) => {
-      // fromTo so a resize (invalidateOnRefresh) re-measures both ends, not just where it's heading
-      timeline.fromTo(wrappers,
-        { [offAxis]: (i) => (i - index) * spacing() },
-        { [offAxis]: (i) => (i - index - 1) * spacing(), immediateRender: false });
-      timeline.to(card, { scale: CARD_SIDE_SCALE }, "<");
-      timeline.to(whites[index], { opacity: CARD_SIDE_WHITE }, "<");
-      timeline.to(cards[index + 1], { scale: 1 }, "<");
-      timeline.to(whites[index + 1], { opacity: 0 }, "<");
-    });
+      // One step per card change; the last card has no step of its own
+      cards.slice(0, -1).forEach((card, index) => {
+        // fromTo so a resize (invalidateOnRefresh) re-measures both ends, not just where it's heading
+        timeline.fromTo(wrappers,
+          { [offAxis]: (i) => (i - index) * spacing() },
+          { [offAxis]: (i) => (i - index - 1) * spacing(), immediateRender: false });
+        timeline.to(card, { scale: CARD_SIDE_SCALE }, "<");
+        timeline.to(whites[index], { opacity: CARD_SIDE_WHITE }, "<");
+        timeline.to(cards[index + 1], { scale: 1 }, "<");
+        timeline.to(whites[index + 1], { opacity: 0 }, "<");
+      });
 
-    // Dots and snapping: scroll position where card i is fully in view
-    const pinTrigger = timeline.scrollTrigger;
-    cardTriggers.current = wrappers.map((_, i) => ({
-      // +1 so the first card sits just inside the pinned range, not on its edge (landing exactly on
-      // the start would count as having left the section and hand scrolling back mid-step)
-      get start() { return pinTrigger.start + (pinTrigger.end - pinTrigger.start) * (i / steps) + 1; },
-    }));
+      // Dots and snapping: scroll position where card i is fully in view
+      pinTrigger = timeline.scrollTrigger;
+      cardTriggers.current = wrappers.map((_, i) => ({
+        // +1 so the first card sits just inside the pinned range, not on its edge (landing exactly on
+        // the start would count as having left the section and hand scrolling back mid-step)
+        get start() { return pinTrigger.start + (pinTrigger.end - pinTrigger.start) * (i / steps) + 1; },
+      }));
+    }
 
     // --- One stop per gesture -------------------------------------------------------------------
     // The homepage is a row of stops: the intro, each project card, then the footer. Wheel and
@@ -376,8 +413,9 @@ function App() {
     });
     stepper.disable();
 
-    // On once the site has loaded, and never while a project page is open (it scrolls on its own)
-    const syncStepper = () => (ready && !projectOpen.current ? stepper.enable() : stepper.disable());
+    // On once the site has loaded, and never while a project page is open (it scrolls on its own).
+    // Never on mobile, where the page scrolls normally.
+    const syncStepper = () => (ready && !projectOpen.current && !mobile ? stepper.enable() : stepper.disable());
     // Indicator dots: straight to card i (stop i + 1), even mid-step
     goToCardRef.current = contextSafe((index) => stepTo(index + 1));
     // Name in the nav: back up to the intro (stop 0)
@@ -386,23 +424,26 @@ function App() {
 
     // The section is itself the pinned element, so "its bottom" has to be offset by how long it
     // stays pinned: it leaves the screen a full pin's worth of scroll later than its layout suggests
+    // (Desktop only: on mobile each video handles its own playing, and there are no dots.)
     const section = document.querySelector('.projects');
     const pinnedFor = () => pinTrigger.end - pinTrigger.start;
 
-    ScrollTrigger.create({
-      trigger: section,
-      start: "top bottom",
-      end: () => `bottom+=${pinnedFor()} top`,
-      onToggle: (self) => { onScreen = self.isActive; syncVideos(); },
-    });
+    if (!mobile) {
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top bottom",
+        end: () => `bottom+=${pinnedFor()} top`,
+        onToggle: (self) => { onScreen = self.isActive; syncVideos(); },
+      });
 
-    // Indicator dots show while the cards fill the middle of the screen
-    ScrollTrigger.create({
-      trigger: section,
-      start: "top center",
-      end: () => `bottom+=${pinnedFor()} center`,
-      onToggle: (self) => setShowIndicator(self.isActive),
-    });
+      // Indicator dots show while the cards fill the middle of the screen
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top center",
+        end: () => `bottom+=${pinnedFor()} center`,
+        onToggle: (self) => setShowIndicator(self.isActive),
+      });
+    }
 
     // Intro heading: each word rises up from behind its own mask. Plays on load and again whenever
     // the heading scrolls back into view. autoSplit re-splits if the layout changes (e.g. once the
@@ -499,17 +540,19 @@ function App() {
     const fill = intro.querySelector('.introFill');
     let cancelled = false;
 
-    // Hold the page at the top while the layout is still changing underneath
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    window.scrollTo(0, 0);
-    document.documentElement.style.overflow = 'hidden';
+    // Hold the page at the top while the layout is still changing underneath (first load only)
+    if (!loaded.current) {
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      window.scrollTo(0, 0);
+      document.documentElement.style.overflow = 'hidden';
+    }
 
     gsap.set(intro, { height: INTRO_BAR_HEIGHT });
     gsap.set(fill, { scaleX: 0, transformOrigin: "0% 50%" });
     gsap.set('.introHeading', { autoAlpha: 0 });
     gsap.set('.introButtons', { autoAlpha: 0, y: 16 });
-    // The first card and the one peeking in below it
-    const firstCards = wrappers.slice(0, 2);
+    // The first card and the one peeking in below it (mobile: the first card and its text)
+    const firstCards = mobile ? [wrappers[0], blocks[0]] : wrappers.slice(0, 2);
     gsap.set(firstCards, { autoAlpha: 0, y: 80 });
     gsap.set(textPanel, { autoAlpha: 0 });
 
@@ -533,16 +576,17 @@ function App() {
     const introIn = contextSafe(({ fromBar = false } = {}) => {
       ready = false; syncStepper();
       document.documentElement.style.overflow = 'hidden';
-      gsap.timeline({
+      return gsap.timeline({
         onComplete: () => {
           document.documentElement.style.overflow = '';
           ScrollTrigger.refresh(); // the intro changed height, so every trigger below it moved
+          loaded.current = true;
           ready = true;
           syncStepper();
         },
       })
         .to(fill, { scaleX: 1, duration: fromBar ? 0.4 : 0, ease: "power2.out", overwrite: true })
-        .to(intro, { height: INTRO_HEIGHT, duration: INTRO_OPEN_DURATION, ease: "power3.inOut" })
+        .to(intro, { height: introHeight(), duration: INTRO_OPEN_DURATION, ease: "power3.inOut" })
         // Words start rising while the intro is still opening (the first time this also splits them)
         .call(() => {
           gsap.set('.introHeading', { autoAlpha: 1 });
@@ -573,12 +617,22 @@ function App() {
     introInRef.current = introIn;
     introOutRef.current = introOut;
 
-    const open = contextSafe(() => { if (!cancelled) introIn({ fromBar: true }); });
-
-    Promise.race([
-      Promise.all(tasks),
-      new Promise((resolve) => setTimeout(resolve, LOAD_TIMEOUT)),
-    ]).then(open);
+    if (loaded.current) {
+      // Rebuilt for the other layout after crossing the breakpoint: no loading bar, straight to
+      // the end state (the intro open, or still folded away if About was opened from it)
+      if (introClosed.current) gsap.set(intro, { height: 0 });
+      else introIn().progress(1);
+      if (projectOpen.current) {
+        document.documentElement.style.overflow = 'hidden'; // the homepage stays frozen under the page
+        showNav.current.progress(1); // and the back button stays put
+      }
+    } else {
+      const open = contextSafe(() => { if (!cancelled) introIn({ fromBar: true }); });
+      Promise.race([
+        Promise.all(tasks),
+        new Promise((resolve) => setTimeout(resolve, LOAD_TIMEOUT)),
+      ]).then(open);
+    }
 
     return () => {
       cancelled = true;
@@ -586,7 +640,15 @@ function App() {
       tiltCleanups.forEach((cleanup) => cleanup());
       pillCleanups.forEach((cleanup) => cleanup());
     };
-  }, { scope: container });
+  }, { scope: container, dependencies: [isMobile], revertOnUpdate: true });
+
+  // Track the mobile breakpoint; changing it rebuilds the homepage animations above
+  useEffect(() => {
+    const query = window.matchMedia(MOBILE_QUERY);
+    const onChange = (e) => setIsMobile(e.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
 
   // Dev only: when a style change hot-reloads, the page layout shifts but ScrollTrigger keeps
   // the positions it measured on load. Re-measure after every update so nothing drifts.
@@ -721,6 +783,9 @@ function App() {
       return;
     }
 
+    // Mobile has no "card in front", so remember the one tapped for the way back (see closeProject)
+    if (isMobileScreen()) activeCardRef.current = index;
+
     // From the homepage: the selected card goes out first (the reverse of it coming back), then
     // the transition. Locked meanwhile so a second click can't start another.
     isAnimating.current = true;
@@ -824,15 +889,16 @@ function App() {
           <div className="introFill" style={styles.introFill}>
             <Dithering style={styles.shader} {...INTRO_SHADER} />
           </div>
-          <div style={{ ...styles.contentWidth, ...styles.introContent }}>
+          {/* Mobile: one column, text on top (column-reverse, since the image comes first) */}
+          <div style={{ ...styles.contentWidth, ...styles.introContent, ...(isMobile && styles.introContentMobile) }}>
             {/* Left half: portrait image, wiped in from the bottom (see introIn) */}
-            <div style={styles.introMedia}>
-              <div className="introImage" style={styles.introImage}>
+            <div style={{ ...styles.introMedia, ...(isMobile && styles.introColumnMobile) }}>
+              <div className="introImage" style={{ ...styles.introImage, ...(isMobile && styles.introImageMobile) }}>
                 {INTRO_IMAGE && <img src={INTRO_IMAGE} alt="" style={styles.introImageImg} />}
               </div>
             </div>
             {/* Right half: heading at the top, buttons at the bottom */}
-            <div style={styles.introText}>
+            <div style={{ ...styles.introText, ...(isMobile && styles.introColumnMobile) }}>
               {/* Name, then what I do underneath; the words of both rise in together (revealIntroText) */}
               <div className="introHeading" style={styles.introHeading}>
                 <h1 style={styles.introHeader}>Hi, I'm Michael</h1>
@@ -861,7 +927,8 @@ function App() {
           </div>
         </section>
 
-        <div
+        {/* Desktop only: on mobile the page just scrolls through the list */}
+        {!isMobile && <div
           style={{ ...styles.indicator, ...(showIndicator ? null : styles.indicatorHidden) }}
           aria-hidden={!showIndicator}
         >
@@ -876,15 +943,17 @@ function App() {
               style={{ ...styles.indicatorDot, ...(index === activeCard ? styles.indicatorDotActive : null) }}
             />
           ))}
-        </div>
+        </div>}
 
         <section className="projects" style={styles.projects}>
-          <div style={styles.cardsFrame}>
+          {/* Mobile: one grid column. The text and video columns step aside (display: contents), so
+              each project's video and text become rows of it, video first (see projectRows) */}
+          <div style={{ ...styles.cardsFrame, ...(isMobile && styles.cardsFrameMobile) }}>
             {/* Left: one text block per project, layered in the same spot; only the current one shows */}
-            <div className="cardsText" style={styles.cardsText}>
-              <div style={styles.textStack}>
+            <div className="cardsText" style={{ ...styles.cardsText, ...(isMobile && styles.cardsTextMobile) }}>
+              <div style={{ ...styles.textStack, ...(isMobile && styles.contentsMobile) }}>
                 {projects.map((project, index) => (
-                  <div key={project.link} className="textBlock" style={styles.textBlock}>
+                  <div key={project.link} className="textBlock" style={{ ...styles.textBlock, ...(isMobile && { ...styles.textBlockMobile, gridArea: projectRows(index).text }) }}>
                     <h1 className="cardTitle" style={styles.cardTitle} onClick={() => openProject(index)}>{project.title}</h1>
                     <p style={styles.cardDescription}>{project.description}</p>
                     {/* In its own mask so it slides in and out with the text lines */}
@@ -907,11 +976,11 @@ function App() {
             </div>
 
             {/* Right: the videos, layered; each scroll slides the next one up over the current */}
-            <div style={styles.cardsMedia}>
+            <div style={{ ...styles.cardsMedia, ...(isMobile && styles.cardsMediaMobile) }}>
               {projects.map((project, index) => (
-                <div key={project.link} className="projectWrapper" style={styles.projectWrapper}>
+                <div key={project.link} className="projectWrapper" style={{ ...styles.projectWrapper, ...(isMobile && { ...styles.projectWrapperMobile, gridArea: projectRows(index).video }) }}>
                   {/* Hover tilt layer (its own element so it doesn't fight the scroll animation's rotation) */}
-                  <div className="projectTilt" style={styles.projectTilt}>
+                  <div className="projectTilt" style={{ ...styles.projectTilt, ...(isMobile && styles.projectTiltMobile) }}>
                     <div
                       className="projectCard"
                       style={styles.projectCard}
@@ -1078,6 +1147,19 @@ const styles = {
     background: "rgba(255, 255, 255, 0.25)", // placeholder until INTRO_IMAGE is set
     clipPath: INTRO_IMAGE_HIDDEN,
   },
+  introContentMobile: {
+    flexDirection: "column-reverse",
+    gap: 0, // the buttons' bottom padding already spaces them from the image
+  },
+  introColumnMobile: {
+    flex: "none",
+  },
+  // Full width at its own aspect ratio, still hanging INTRO_IMAGE_OVERFLOW below the intro
+  introImageMobile: {
+    width: "100%",
+    height: "auto",
+    marginBottom: `-${INTRO_IMAGE_OVERFLOW}px`,
+  },
   introImageImg: {
     width: "100%",
     height: "100%",
@@ -1143,12 +1225,26 @@ const styles = {
     margin: "0 auto",
     boxSizing: "border-box",
   },
+  cardsFrameMobile: {
+    display: "grid",
+    gridTemplateColumns: "100%",
+    height: "auto",
+    gap: 0,
+    paddingBottom: "40px",
+  },
+  // Takes a wrapper out of the layout so its children sit straight in the grid above
+  contentsMobile: {
+    display: "contents",
+  },
   cardsText: {
     flex: `0 0 ${CARDS_TEXT_WIDTH}`,
     display: "flex",
     alignItems: "center",
     paddingTop: `${NAV_HEIGHT}px`,
     boxSizing: "border-box",
+  },
+  cardsTextMobile: {
+    display: "contents",
   },
   // Every text block sits in the same grid cell, so the stack is as tall as the longest one
   textStack: {
@@ -1158,10 +1254,18 @@ const styles = {
   textBlock: {
     gridArea: "1 / 1",
   },
+  // Under its video, with room before the next project
+  textBlockMobile: {
+    padding: "20px 0 64px",
+  },
   cardsMedia: {
     position: "relative",
     flex: "1 1 auto",
     transform: CARDS_MEDIA_TRANSFORM,
+  },
+  cardsMediaMobile: {
+    display: "contents",
+    transform: "none",
   },
   // Full-height layer per video within the right column; the video card sits under the nav
   projectWrapper: {
@@ -1179,6 +1283,18 @@ const styles = {
     maxHeight: `${CARD_MAX_HEIGHT}px`,
     aspectRatio: CARD_ASPECT,
     maxWidth: "100%",
+  },
+  // Full width on a phone, height from CARD_ASPECT
+  projectTiltMobile: {
+    width: "100%",
+    height: "auto",
+    maxHeight: "none",
+  },
+  // In the list rather than layered on top of each other
+  projectWrapperMobile: {
+    position: "relative",
+    inset: "auto",
+    padding: 0,
   },
   projectCard: {
     background: "#fffffe",

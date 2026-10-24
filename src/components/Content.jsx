@@ -26,7 +26,9 @@ export default function Content(props) {
 
 
     // 1. RESPONSIVE STATE
-    const [isMobile, setIsMobile] = useState(false);
+    // Measured on the first render, not after it: the text animations split their lines on mount,
+    // so they need to see the mobile layout from the start
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 800);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 800);
@@ -88,7 +90,9 @@ export default function Content(props) {
         if (props.content !== "intro" || !titleRef.current) return;
         const titleSplit = new SplitText(titleRef.current, { type: "chars, words" });
         const introSplit = new SplitText(introRef.current, { type: "lines" });
-        const tl = gsap.timeline({ delay: 1 });
+        // Once it has played, back to plain text: split lines are fixed, so they'd stop re-wrapping
+        // when the width changes (resizing, turning a phone, DevTools device mode)
+        const tl = gsap.timeline({ delay: 1, onComplete: () => { titleSplit.revert(); introSplit.revert(); } });
 
         if (iconRef.current) {
             tl.from(iconRef.current, {
@@ -140,7 +144,8 @@ export default function Content(props) {
             const headerSplit = new SplitText(headerRef.current, { type: "words" });
             const textSplit = new SplitText(textRef.current, { type: "lines" });
 
-            const tl = gsap.timeline({ delay: 1 });
+            // Back to plain text once played, so the paragraph keeps re-wrapping to the full width
+            const tl = gsap.timeline({ delay: 1, onComplete: () => { headerSplit.revert(); textSplit.revert(); } });
 
             tl.from(lineRef.current, {
                 scaleX: 0,
@@ -172,6 +177,7 @@ export default function Content(props) {
         const textSplit = new SplitText(textRef.current, { type: "lines" });
 
         const tl = gsap.timeline({
+            onComplete: () => { headerSplit.revert(); textSplit.revert(); }, // as above: plain text once played
             scrollTrigger: {
                 trigger: headerRef.current,
                 scroller: scroller.current,
@@ -276,9 +282,10 @@ export default function Content(props) {
                         //     props.align == "left" ? "50%" : 
                         //     props.align == "center" ? "%100" :
                         //     props.align == "right" ? "50%" : "100%",
+                        ...(isMobile && styles.headerTextContainerMobile),
                         }}
                         >
-                    <div style={styles.headerTextWrap}>
+                    <div style={{ ...styles.headerTextWrap, ...(isMobile && styles.headerTextWrapMobile) }}>
                         {props.title != null && (
                             <div style={styles.headerWrap}>
                                 <h2 ref={headerRef} style={styles.header}>{props.title}</h2>
@@ -291,7 +298,7 @@ export default function Content(props) {
                                 {props.subtext != null && (
                                     <p ref={subtextRef} style={styles.subtext}>{props.subtext}</p>
                                 )}
-                                <p ref={textRef} style={styles.text}>{props.text}</p>
+                                <p ref={textRef} style={{ ...styles.text, ...(isMobile && styles.textMobile) }}>{props.text}</p>
                             </div>
                             </>
                         )}
@@ -570,6 +577,15 @@ const styles = {
         display: "block",
         paddingLeft: "18px",
     },
+    // Small screens: no side padding, so the text lines up with the images (the Section's 20px
+    // gutter is the only margin), and a little less space above and below
+    headerTextContainerMobile: {
+        padding: 0,
+        margin: "32px 0 64px",
+    },
+    headerTextWrapMobile: {
+        paddingLeft: 0,
+    },
     headerWrap: {
         overflow: "hidden",
     },
@@ -605,6 +621,9 @@ const styles = {
         fontFamily: 'var(--body)',
         fontSize: '1.1rem',
         margin: "0",
+    },
+    textMobile: {
+        fontSize: "1rem",
     },
     image: {
         width: "100%",
