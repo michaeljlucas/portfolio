@@ -1,0 +1,87 @@
+:root {
+  /* Outfit is the old site's typeface; loaded in index.html */
+  font-family: "Outfit", sans-serif;
+  /* Headings (h1, h2 below, plus heading styles in components/Content.jsx) */
+  --heading: "Questrial", sans-serif; /* was "Inter", and "Platypi" before that (both still loaded in index.html) */
+  /* Paragraphs (p below, plus paragraph styles in components/Content.jsx). Graphik isn't loaded
+     by the site, so it only shows where it's installed; otherwise the system font takes over. */
+  --body: "Graphik Web", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  /* Keeps layout from shifting when scrolling is locked while a project is open */
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+}
+
+/* Set on <html> for the duration of the page swipe. Firefox can hand videos to the OS to draw,
+   which puts them on top of the slides regardless of z-index, so don't draw them at all.
+   !important because GSAP sets visibility inline on some videos (the reveal in Content.jsx). */
+.is-swiping video {
+  visibility: hidden !important;
+}
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+/* Project title in the projects section (App.jsx) */
+.cardTitle {
+  font-size: 90px;
+  line-height: 0.8;
+  font-weight: 500;
+  @media (max-width: 1024px) {
+    font-size: 45px;
+  }
+}
+
+/* SplitText's line masks clip at the line box; with tight line heights that would cut off
+   descenders (g, p, y). Extra room at the bottom, cancelled out so the layout doesn't move. */
+.textBlock .line-mask {
+  padding-bottom: 0.15em;
+  margin-bottom: -0.15em;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+/* Paragraph weight, line height and colour across the site; per-paragraph sizes are set where they're used */
+p {
+  font-family: var(--body);
+  font-weight: 400;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+}
+
+
+/* The custom cursor (components/Cursor.jsx) replaces the system one. !important because many
+   elements set cursor: pointer inline. */
+.has-custom-cursor,
+.has-custom-cursor * {
+  cursor: none !important;
+}
