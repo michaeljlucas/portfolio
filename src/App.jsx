@@ -15,6 +15,7 @@ import { projects } from './projects';
 import About from './pages/About';
 import Arrow from './components/Arrow';
 import Cursor from './components/Cursor';
+import ContactButton from './components/ContactButton';
 import { ProjectContext } from './projectContext';
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, SplitText, MorphSVGPlugin, Observer);
@@ -118,7 +119,8 @@ const INTRO_SPACE_BELOW = 80;    // px between the intro and the projects (same 
 // "/images/intro.jpg"; until then a translucent placeholder shows in its place.
 const INTRO_IMAGE = "/images/intro.jpg";
 const INTRO_IMAGE_ASPECT = "3 / 4";
-const INTRO_IMAGE_OVERFLOW = 64;   // px the image hangs below the bottom of the intro
+const INTRO_IMAGE_OVERFLOW = 64;   // px the image hangs below the bottom of the intro (desktop)
+const MOBILE_INTRO_IMAGE_SPACE = 24; // px of shader showing below the image on small screens (no overhang there)
 // The image is wiped in from the bottom: a clip that starts squashed against the bottom edge
 const INTRO_IMAGE_HIDDEN = "inset(100% 0% 0% 0%)";
 const INTRO_IMAGE_SHOWN = "inset(0% 0% 0% 0%)";
@@ -144,6 +146,10 @@ const GESTURE_GAP = 120;  // ms of no scroll input that marks the end of a gestu
 const NAV_HEIGHT = 56;
 const NAV_LINKS_OFFSET = 20;         // px the nav links sit lower than centred in a NAV_HEIGHT bar
 const NAV_BAR_HEIGHT = NAV_HEIGHT + NAV_LINKS_OFFSET; // the frosted bar's full height
+// Small screens (MOBILE_QUERY): a slimmer bar with smaller text
+const MOBILE_NAV_BAR_HEIGHT = 52;
+const MOBILE_NAV_FONT_SIZE = 16;     // px (desktop: 20px, see navInner)
+const navBarHeight = (mobile) => (mobile ? MOBILE_NAV_BAR_HEIGHT : NAV_BAR_HEIGHT);
 const CARDS_DIRECTION = "vertical";  // "vertical": next card rises from below. "horizontal": from the right
 const CARDS_SCRUB = 1;               // seconds the animation lags behind the scroll (smoothing); true = none
 // Cards either side of the current one are shrunk and washed out towards white, so the current
@@ -227,7 +233,7 @@ function App() {
     // (Mobile: as soon as they reach the bar, since the Work button stops the first card just under it)
     navTrigger.current = ScrollTrigger.create({
       trigger: '.projects',
-      start: mobile ? `top ${NAV_BAR_HEIGHT + 1}px` : "top top",
+      start: mobile ? `top ${MOBILE_NAV_BAR_HEIGHT + 1}px` : "top top",
       onEnter: () => showNav.current.play(),
       onLeaveBack: () => showNav.current.reverse(),
     });
@@ -295,7 +301,7 @@ function App() {
       gsap.set(wrappers.map((w) => w.querySelector('.cardWhite')), { opacity: 0 });
       // Scroll position that puts card i just under the nav (for the Work button)
       cardTriggers.current = wrappers.map((wrapper) => ({
-        get start() { return wrapper.getBoundingClientRect().top + window.scrollY - NAV_BAR_HEIGHT; },
+        get start() { return wrapper.getBoundingClientRect().top + window.scrollY - MOBILE_NAV_BAR_HEIGHT; },
       }));
     } else {
       // One timeline for the whole section: pinned for a screen height of scroll per card, and each
@@ -856,11 +862,11 @@ function App() {
   return (
     <div ref={container}>
       <Cursor />
-      <nav className="navigation" style={styles.navigation}>
-        <div style={styles.navInner}>
+      <nav className="navigation" style={{ ...styles.navigation, ...(isMobile && styles.navigationMobile) }}>
+        <div style={{ ...styles.navInner, ...(isMobile && styles.navInnerMobile) }}>
           {activeProject !== null ? (
             <button onClick={closeProject} style={styles.backButton}>
-              <Arrow direction="left" size={26} />
+              <Arrow direction="left" size={isMobile ? 20 : 26} />
               Back
             </button>
           ) : (
@@ -872,13 +878,18 @@ function App() {
               Michael Lucas
             </a>
           )}
-          <a
-            href="#about"
-            style={styles.navLink}
-            onClick={(e) => { e.preventDefault(); openProject('about'); }}
-          >
-            About
-          </a>
+          {/* On the About page itself, a link to About is pointless: copy the email address instead */}
+          {activeProject === 'about' ? (
+            <ContactButton style={styles.navLink} />
+          ) : (
+            <a
+              href="#about"
+              style={styles.navLink}
+              onClick={(e) => { e.preventDefault(); openProject('about'); }}
+            >
+              About
+            </a>
+          )}
         </div>
       </nav>
 
@@ -983,7 +994,7 @@ function App() {
                   <div className="projectTilt" style={{ ...styles.projectTilt, ...(isMobile && styles.projectTiltMobile) }}>
                     <div
                       className="projectCard"
-                      style={styles.projectCard}
+                      style={{ ...styles.projectCard, ...(isMobile && styles.projectCardMobile) }}
                       onClick={() => openProject(index)}
                     >
                       <video
@@ -1015,7 +1026,7 @@ function App() {
       <div
         ref={projectView}
         tabIndex={-1}
-        style={{ ...styles.projectView, display: ActiveProject ? 'block' : 'none' }}
+        style={{ ...styles.projectView, paddingTop: `${navBarHeight(isMobile)}px`, display: ActiveProject ? 'block' : 'none' }}
       >
         <ProjectContext.Provider value={projectContext}>
           {ActiveProject && <ActiveProject />}
@@ -1053,6 +1064,12 @@ const styles = {
     visibility: "hidden", // avoids a flash before GSAP takes over
     paddingBottom: "20px",
   },
+  // Same 36px row for the links, with less bar above and below it
+  navigationMobile: {
+    height: `${MOBILE_NAV_BAR_HEIGHT}px`,
+    paddingTop: "10px",
+    paddingBottom: "6px",
+  },
   // Centred column every homepage section lines up to: MAX_WIDTH of content plus a gutter each side
   contentWidth: {
     width: "100%",
@@ -1075,6 +1092,9 @@ const styles = {
     fontSize: "20px", // name/Back and About; the back button inherits this
     fontWeight: 600,
     textTransform: "uppercase",
+  },
+  navInnerMobile: {
+    fontSize: `${MOBILE_NAV_FONT_SIZE}px`,
   },
   navLink: {
     pointerEvents: "auto",
@@ -1150,15 +1170,16 @@ const styles = {
   introContentMobile: {
     flexDirection: "column-reverse",
     gap: 0, // the buttons' bottom padding already spaces them from the image
+    paddingBottom: `${MOBILE_INTRO_IMAGE_SPACE}px`, // the shader carries on past the image
   },
   introColumnMobile: {
     flex: "none",
   },
-  // Full width at its own aspect ratio, still hanging INTRO_IMAGE_OVERFLOW below the intro
+  // Full width at its own aspect ratio, inside the shader rather than hanging below it, so the
+  // full INTRO_SPACE_BELOW shows between the intro and the first project
   introImageMobile: {
     width: "100%",
     height: "auto",
-    marginBottom: `-${INTRO_IMAGE_OVERFLOW}px`,
   },
   introImageImg: {
     width: "100%",
@@ -1295,6 +1316,10 @@ const styles = {
     position: "relative",
     inset: "auto",
     padding: 0,
+  },
+  // Flat in the mobile list: no drop shadow
+  projectCardMobile: {
+    boxShadow: "none",
   },
   projectCard: {
     background: "#fffffe",

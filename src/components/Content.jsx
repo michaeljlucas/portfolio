@@ -288,12 +288,12 @@ export default function Content(props) {
                     <div style={{ ...styles.headerTextWrap, ...(isMobile && styles.headerTextWrapMobile) }}>
                         {props.title != null && (
                             <div style={styles.headerWrap}>
-                                <h2 ref={headerRef} style={styles.header}>{props.title}</h2>
+                                <h2 ref={headerRef} style={{ ...styles.header, ...(isMobile && styles.headerMobile) }}>{props.title}</h2>
                             </div>
                         )}
                         {props.text != null && (
                             <>
-                                <div ref={lineRef} style={styles.line}></div>
+                                <div ref={lineRef} style={{ ...styles.line, ...(isMobile && styles.lineMobile) }}></div>
                                 <div style={styles.textWrap}>                            
                                 {props.subtext != null && (
                                     <p ref={subtextRef} style={styles.subtext}>{props.subtext}</p>
@@ -598,6 +598,13 @@ const styles = {
         color: "#1a1a1a",
         padding: "0",
         margin: "0",
+    },
+    // Small screens: a smaller heading, sitting closer to its line
+    headerMobile: {
+        fontSize: "1.4rem",
+    },
+    lineMobile: {
+        marginTop: "14px",
     },
     textWrap: {
         display: "flex",
