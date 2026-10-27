@@ -1,5 +1,7 @@
 // About page: photo, bio, and links. Opened from the nav's "About" with the same page transition
-// as the projects (see openPage in App.jsx).
+// as the projects (see openProject in App.jsx).
+import { useContext } from 'react';
+import { ProjectContext } from '../projectContext';
 
 // Put your photo in public/images/ and set its path here, e.g. "/images/about.jpg".
 // Until then a grey placeholder shows in its place.
@@ -18,6 +20,8 @@ const LINKS = [
 ];
 
 function About() {
+  const { openProject } = useContext(ProjectContext);
+
   return (
     <article style={styles.page}>
       {PHOTO ? (
@@ -29,7 +33,24 @@ function About() {
       <div style={styles.body}>
         <h1 style={styles.heading}>About</h1>
         <div style={styles.bio}>
-          {BIO.map((paragraph, i) => <p key={i} style={styles.paragraph}>{paragraph}</p>)}
+          {BIO.map((paragraph, i) => (
+            <p key={i} style={styles.paragraph}>
+              {paragraph}
+              {/* After the last paragraph's text: the way to the Photography page */}
+              {i === BIO.length - 1 && (
+                <>
+                  {" "}
+                  <a
+                    href="#photography"
+                    style={styles.inlineLink}
+                    onClick={(e) => { e.preventDefault(); openProject('#photography'); }}
+                  >
+                    Check out my photography
+                  </a>
+                </>
+              )}
+            </p>
+          ))}
         </div>
 
         <ul style={styles.links}>
@@ -109,6 +130,11 @@ const styles = {
   },
   paragraph: {
     margin: "0 0 16px",
+  },
+  inlineLink: {
+    color: "#141414",
+    textDecoration: "underline",
+    textUnderlineOffset: "4px",
   },
   links: {
     listStyle: "none",

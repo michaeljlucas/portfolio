@@ -13,6 +13,7 @@ import { Observer } from "gsap/Observer";
 
 import { projects } from './projects';
 import About from './pages/About';
+import Photography from './pages/Photography';
 import Arrow from './components/Arrow';
 import Cursor from './components/Cursor';
 import ContactButton from './components/ContactButton';
@@ -183,8 +184,14 @@ const CARD_SHADOW = "20px 20px 39px rgba(0,0,0,0.3)";
 // Mobile list: project i's video and text as rows of the one grid column, video first
 const projectRows = (i) => ({ video: `${2 * i + 1} / 1`, text: `${2 * i + 2} / 1` });
 
+// Pages that aren't projects, by the name openProject takes. They open with a plain fade (no wipe),
+// and inside a page they're linked as "#name" (see openProjectByLink).
+const PAGES = { about: About, photography: Photography };
+const isPage = (index) => typeof index === 'string';
+
 function App() {
-  // What's open over the homepage: a project's index, 'about', or null for the homepage itself
+  // What's open over the homepage: a project's index, a PAGES name ('about', 'photography'), or
+  // null for the homepage itself
   const [activeProject, setActiveProject] = useState(null);
   // Which card the side indicator highlights, and whether the indicator is showing at all
   const [activeCard, setActiveCard] = useState(0);
@@ -753,7 +760,7 @@ function App() {
     if (onReveal) tl.call(onReveal);
   };
 
-  // Opens a project (by index) or the About page ('about') with the page transition
+  // Opens a project (by index) or one of PAGES (by name) with the page transition
   const openProject = contextSafe((index) => {
     if (isAnimating.current || index === activeProject) return;
 
@@ -770,7 +777,7 @@ function App() {
 
       // Make sure the back button is visible even if the nav hadn't appeared yet
       showNav.current.play();
-    }, undefined, { wipe: index !== 'about' });
+    }, undefined, { wipe: !isPage(index) });
 
     // About from the intro (intro on screen): fold the intro away first, the reverse of how it
     // opens on load. It opens again when you come back (see closeProject).
@@ -782,9 +789,9 @@ function App() {
       return;
     }
 
-    // Already on a page ("More Projects", or About from a project), or About from further down:
-    // no card to animate out, go straight to the transition
-    if (projectOpen.current || index === 'about') {
+    // Already on a page ("More Projects", About from a project, Photography from About), or About
+    // from further down: no card to animate out, go straight to the transition
+    if (projectOpen.current || isPage(index)) {
       transition();
       return;
     }
@@ -836,14 +843,17 @@ function App() {
         gsap.to(card, { autoAlpha: 1, x: 0, y: 0, scale: 1, ...RETURN_TWEEN });
         gsap.to(neighbours, { autoAlpha: 1, ...RETURN_NEIGHBOURS });
       }
-    }, { wipe: activeProject !== 'about' });
+    }, { wipe: !isPage(activeProject) });
   });
 
   // Indicator dot click: scroll so that card sits at the top of the screen
   const scrollToCard = (index) => goToCardRef.current(index); // a dot click always goes
 
-  // Used by "More Projects" inside a project page to swipe straight to another one
+  // Used inside a page to go straight to another: "More Projects" (a project's link), or a link to
+  // one of PAGES as "#name" (the About page's link to Photography)
   const openProjectByLink = (link) => {
+    const page = link.replace(/^#/, '');
+    if (PAGES[page]) { openProject(page); return; }
     const index = projects.findIndex((p) => p.link === link);
     if (index !== -1) openProject(index);
   };
@@ -855,7 +865,7 @@ function App() {
   };
 
   const ActiveProject =
-    activeProject === 'about' ? About
+    isPage(activeProject) ? PAGES[activeProject]
     : activeProject !== null ? projects[activeProject].Component
     : null;
 
@@ -865,7 +875,8 @@ function App() {
       <nav className="navigation" style={{ ...styles.navigation, ...(isMobile && styles.navigationMobile) }}>
         <div style={{ ...styles.navInner, ...(isMobile && styles.navInnerMobile) }}>
           {activeProject !== null ? (
-            <button onClick={closeProject} style={styles.backButton}>
+            // Photography is reached from About, so Back goes there rather than to the homepage
+            <button onClick={activeProject === 'photography' ? () => openProject('about') : closeProject} style={styles.backButton}>
               <Arrow direction="left" size={isMobile ? 20 : 26} />
               Back
             </button>
