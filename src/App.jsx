@@ -90,6 +90,8 @@ const INTRO_SHADER = {
   scale: 3.4,
 };
 
+// Footer switched off for now: true brings it back (the section, and its stop when stepping)
+const SHOW_FOOTER = false;
 // Paper mesh gradient behind the footer
 const SHADER = {
   colors: ["#2189a6", "#dfa896", "#ff8c2e"],
@@ -375,7 +377,7 @@ function App() {
     const stops = () => [
       0,                                                  // intro
       ...cardTriggers.current.map((card) => card.start),  // each card
-      ScrollTrigger.maxScroll(window),                    // footer
+      ...(SHOW_FOOTER ? [ScrollTrigger.maxScroll(window)] : []), // footer
     ];
     // Nearest stop to where the page actually is (so it stays right after keyboard/scrollbar scrolling)
     const nearestStop = () => {
@@ -1025,13 +1027,15 @@ function App() {
           </div>
         </section>
 
-        <section style={styles.footer}>
-          <MeshGradient style={styles.shader} {...SHADER} />
-          {/* Footer content goes in here so it sits above the shader */}
-          <div style={{ ...styles.contentWidth, ...styles.footerContent }}>
-            <h1>Footer</h1>
-          </div>
-        </section>
+        {SHOW_FOOTER && (
+          <section style={styles.footer}>
+            <MeshGradient style={styles.shader} {...SHADER} />
+            {/* Footer content goes in here so it sits above the shader */}
+            <div style={{ ...styles.contentWidth, ...styles.footerContent }}>
+              <h1>Footer</h1>
+            </div>
+          </section>
+        )}
       </main>
 
       <div

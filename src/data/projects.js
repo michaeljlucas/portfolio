@@ -473,9 +473,9 @@ export const project = [
     roles: ["Interaction designer","Visual designer", "Prototype", "Design system"],
     platforms: ["Desktop Web", "Tablet"],
     year: "2024-2025",
-    preview: "proxy editor used by thousands of broadcast journalists and editors at major U.S. television networks",
+    preview: "branding, illustration and web design that brought a mortgage CRM's marketing in line with its product",
     overview:
-        "Create is Bitcentral's browser-based proxy editor used by thousands of broadcast journalists and editors at major U.S. television networks, including Nexstar Media Group — the largest TV station owner in the country. Create 3 was a full generational redesign of the product, built to modernize the editing experience for fast-paced, always-on newsroom environments where speed, collaboration, and reliability aren't optional.",
+        "Alongside the Insellerate CRM itself, I designed the company's marketing: a rebrand and website redesign that brought the brand back in line with the product, illustrations for the site and the yearly mortgage marketing survey, a lead landing page I designed and coded with GSAP animation, the company blog on WordPress, materials for a digital lending workshop, and shirts celebrating the V4 release.",
     video: "/video/inselleratemarketing_preview.mp4",
     detail1: {
         header: "Insell-a-Racer",
