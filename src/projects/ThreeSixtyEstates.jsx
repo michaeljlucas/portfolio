@@ -119,11 +119,7 @@ export default function ThreeSixtyEstates() {
                 imgUrl={data.image7}
                 imgDescription={data.image7Description}
             />
-            <Content 
-                content="headerText"
-                title={data.detail6.header} 
-                text={data.detail6.text}
-                />
+
             {/* ... continue using data.image3, data.detail2, etc. ... */}
         </Section>
         <Section>

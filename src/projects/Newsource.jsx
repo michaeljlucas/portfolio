@@ -23,7 +23,7 @@ export default function Newsource() {
                     />
             </Section>
             <Section>
-                <Content // Folders 
+                <Content // Search as the interface 
                     content="headerText"
                     title={data.detail1.header} 
                     text={data.detail1.text}
@@ -66,7 +66,7 @@ export default function Newsource() {
                     imgDescription={data.image6Description}
                 /> */}
 
-                <Content // Search Folder
+                <Content // Saving Beats, not queries
                     content="headerText"
                     title={data.detail3.header} 
                     text={data.detail3.text}

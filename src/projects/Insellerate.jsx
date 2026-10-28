@@ -168,7 +168,7 @@ export default function Insellerate() {
                 imgDescription={data.image17Description}
             /> */}
 
-            <Content // Additional UI
+            <Content // The system applied across the rest of the product
                 content="headerText"
                 title={data.detail15.header} 
                 text={data.detail15.text}

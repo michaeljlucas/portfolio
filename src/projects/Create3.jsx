@@ -101,7 +101,7 @@ export default function Create3() {
                 align="center"
                 // Note: Check Content.jsx to see if you use "header" or "title" prop
                 title={data.detail4.header} 
-                subtext="this is the subtext component"
+                // subtext="this is the subtext component"
                 text={data.detail4.text}
                 />
             <Content 
@@ -113,11 +113,6 @@ export default function Create3() {
                 content="image"
                 imgUrl={data.image30}
                 imgDescription={data.image30Description}
-                />
-            <Content 
-                content="image"
-                imgUrl={data.image31}
-                imgDescription={data.image31Description}
                 />
             <Content 
                 content="headerText"
@@ -135,22 +130,17 @@ export default function Create3() {
                 imgDescription={data.image5Description}
                 />
             <Content 
-                content="image"
-                imgUrl={data.image6}
-                imgDescription={data.image6Description}
-                />
-            <Content 
                 content="headerText"
                 title={data.detail6.header} 
                 text={data.detail6.text}
                 />
-            <Content
+            {/* <Content
                 content="stat" 
                 stat1 ="15m"
                 stat1Title="44% increase engagment in user interaction"
                 stat2 ="16m"
                 stat2Title="completed that"
-            />
+            /> */}
             <Content
                 content="stat" 
                 stat1 ="121%"
