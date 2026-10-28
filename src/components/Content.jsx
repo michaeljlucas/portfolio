@@ -377,15 +377,15 @@ export default function Content(props) {
 
             {props.content ==="stat" && (
                 <>
-                    <div style={styles.statContainer}>                        
+                    <div style={{ ...styles.statContainer, flexDirection: isMobile ? "column" : "row" }}>
                         {props.stat1 != null && (
-                            <div style={styles.statWrap}>
+                            <div style={{ ...styles.statWrap, ...(isMobile && styles.statWrapMobile) }}>
                                 <p style={styles.stat}>{props.stat1}</p>
                                 {props.stat1Title != null && (<h2 style={styles.statTitle}>{props.stat1Title}</h2>)}
                             </div> 
                         )}
                         {props.stat2 != null && (
-                            <div style={styles.statWrap}>
+                            <div style={{ ...styles.statWrap, ...(isMobile && styles.statWrapMobile) }}>
                                 <p style={styles.stat}>{props.stat2}</p>
                                 {props.stat2Title != null && (<h2 style={styles.statTitle}>{props.stat2Title}</h2>)}
                             </div> 
@@ -658,10 +658,15 @@ const styles = {
     statWrap: {
         margin: '8px',
         width: "100%",
+        boxSizing: "border-box", // the padding and border count inside that width
         borderRadius: "8px",
         backgroundColor: "rgba(0, 0, 0, 0.06)",
         border: "1px solid rgba(0, 0, 0, 0.12)",
         padding: "12px",
+    },
+    // Stacked on small screens: fill the column, less the margins (100% plus margins would overflow)
+    statWrapMobile: {
+        width: "auto",
     },
     stat: {
         fontSize: "2rem",

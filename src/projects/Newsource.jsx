@@ -98,6 +98,15 @@ export default function Newsource() {
                     text={data.detail3.text}
                 /> */}
 
+                {/* Figures from the overview in data/projects.js */}
+                <Content
+                    content="stat"
+                    stat1="1,000+"
+                    stat1Title="local TV affiliates across North America"
+                    stat2="200+"
+                    stat2Title="international partners"
+                />
+
                 {/* ... continue using data.image3, data.detail2, etc. ... */}
             </Section>
             <Section>
