@@ -226,11 +226,9 @@ export default function Content(props) {
 
 
     // Other projects to preview, excluding whichever one is currently being viewed
-    const otherProjects = allProjects.filter((item, i, arr) =>
-        item.link !== props.currentLink &&
-        links.includes(item.link) &&
-        arr.findIndex((p) => p.link === item.link) === i
-    );
+    // The project after this one, in the homepage's order, wrapping round from the last to the first
+    const nextLink = links[(links.indexOf(props.currentLink) + 1) % links.length];
+    const nextProject = allProjects.find((p) => p.link === nextLink);
 
     return (
         <div ref={mainContainer} style={{ ...responsiveRow, backgroundColor: props.rowBackground }}>
@@ -404,25 +402,22 @@ export default function Content(props) {
             )}
 
             {props.content === "projects" && (
-                <div style={styles.otherProjectsSection}>
-                    <h2 style={styles.otherProjectsHeading}>More Projects</h2>
-                    <div style={styles.otherProjectsGrid}>
-                        {otherProjects.map((item) => (
-                            <a
-                                key={item.link}
-                                href={item.link}
-                                style={styles.otherProjectCard}
-                                onClick={(e) => { e.preventDefault(); openProject(item.link); }}
-                            >
-                                <div style={styles.otherProjectImageWrap}>
-                                    <img src={item.image1} alt={item.title} style={styles.otherProjectImage} />
-                                </div>
-                                <h3 style={styles.otherProjectTitle}>{item.title}</h3>
-                                <p style={styles.otherProjectCompany}>{item.company}</p>
-                            </a>
-                        ))}
-                    </div>
+                nextProject && (
+                <div style={{ ...styles.otherProjectsSection, padding: isMobile ? "20px" : "32px" }}>
+                    <h2 style={styles.otherProjectsHeading}>Next project</h2>
+                    <a
+                        href={nextProject.link}
+                        style={styles.otherProjectCard}
+                        onClick={(e) => { e.preventDefault(); openProject(nextProject.link); }}
+                    >
+                        <div style={styles.otherProjectImageWrap}>
+                            <img src={nextProject.image1} alt={nextProject.title} style={styles.otherProjectImage} />
+                        </div>
+                        <h3 style={styles.otherProjectTitle}>{nextProject.title}</h3>
+                        <p style={styles.otherProjectCompany}>{nextProject.company}</p>
+                    </a>
                 </div>
+                )
             )}
         </div>
     );
@@ -682,8 +677,13 @@ const styles = {
         margin: "0 0 0 2px",
         fontWeight: "300"
     },
+    // Light grey panel, the same as the overview panel at the top of the page (padding set inline:
+    // 32px, or 20px on small screens)
     otherProjectsSection: {
         width: "100%",
+        background: "#f2f2f2",
+        borderRadius: "20px",
+        boxSizing: "border-box",
     },
     otherProjectsHeading: {
         fontFamily: 'var(--heading)',
@@ -692,20 +692,15 @@ const styles = {
         color: "#141414",
         margin: "0 0 24px 0",
     },
-    otherProjectsGrid: {
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-        gap: "24px",
-        width: "100%",
-    },
     otherProjectCard: {
         display: "block",
         textDecoration: "none",
         color: "#141414",
     },
+    // One card across the full width now, so a wide frame rather than a fixed short strip
     otherProjectImageWrap: {
         width: "100%",
-        height: "220px",
+        aspectRatio: "16 / 9",
         borderRadius: "18px",
         overflow: "hidden",
         background: "#f4f4f2",

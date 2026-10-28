@@ -100,6 +100,12 @@ export default function Newsource() {
 
                 {/* ... continue using data.image3, data.detail2, etc. ... */}
             </Section>
+            <Section>
+                <Content
+                    content="projects"
+                    currentLink={data.link}
+                />
+            </Section>
         </>
     );
 }

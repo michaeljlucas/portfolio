@@ -791,7 +791,7 @@ function App() {
       return;
     }
 
-    // Already on a page ("More Projects", About from a project, Photography from About), or About
+    // Already on a page ("Next project", About from a project, Photography from About), or About
     // from further down: no card to animate out, go straight to the transition
     if (projectOpen.current || isPage(index)) {
       transition();
@@ -851,7 +851,7 @@ function App() {
   // Indicator dot click: scroll so that card sits at the top of the screen
   const scrollToCard = (index) => goToCardRef.current(index); // a dot click always goes
 
-  // Used inside a page to go straight to another: "More Projects" (a project's link), or a link to
+  // Used inside a page to go straight to another: "Next project" (a project's link), or a link to
   // one of PAGES as "#name" (the About page's link to Photography)
   const openProjectByLink = (link) => {
     const page = link.replace(/^#/, '');

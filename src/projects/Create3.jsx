@@ -148,12 +148,12 @@ export default function Create3() {
             />
             {/* ... continue using data.image3, data.detail2, etc. ... */}
         </Section>
-        {/* <Section background="rgb(28, 28, 28)">
+        <Section>
             <Content
                 content="projects"
                 currentLink={data.link}
             />
-        </Section> */}
+        </Section>
     </>
     );
 }
