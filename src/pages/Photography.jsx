@@ -23,6 +23,7 @@ const MOBILE_COLUMNS = 2;
 const MOBILE_QUERY = "(max-width: 799px)"; // same breakpoint as the rest of the site
 const GAP = 16; // px, between the columns and between photos in a column
 const HOVER_DARKEN = 0.3; // opacity of the black layer over a hovered photo
+const FADE_IN_DURATION = 0.6; // s, a photo fading in over its placeholder once loaded
 const MODAL_IN = { duration: 0.35, ease: "power2.out" };
 const MODAL_OUT = { duration: 0.25, ease: "power2.in" };
 
@@ -74,6 +75,11 @@ export default Photography;
 // One photo in the columns: a button, so it can be clicked or tabbed to and opened with Enter
 function Photo({ src, onOpen }) {
   const [hovered, setHovered] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  // A cached photo can finish before React attaches onLoad, so check on mount too
+  const image = useRef(null);
+  useEffect(() => { if (image.current?.complete) setLoaded(true); }, []);
+
   return (
     <button
       type="button"
@@ -83,7 +89,17 @@ function Photo({ src, onOpen }) {
       onPointerLeave={() => setHovered(false)}
       aria-label="View photo"
     >
-      <img src={src} alt="" loading="lazy" style={styles.photo} />
+      {/* Grey shimmer behind the photo until it has loaded (see .photo-placeholder in index.css) */}
+      <span className="photo-placeholder" style={{ ...styles.placeholder, visibility: loaded ? "hidden" : "visible" }} aria-hidden="true" />
+      <img
+        ref={image}
+        src={src}
+        alt=""
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        style={{ ...styles.photo, opacity: loaded ? 1 : 0 }}
+      />
       <span style={{ ...styles.darken, opacity: hovered ? HOVER_DARKEN : 0 }} aria-hidden="true" />
     </button>
   );
@@ -162,9 +178,19 @@ const styles = {
     breakInside: "avoid", // never split a photo across two columns
   },
   photo: {
+    position: "relative", // above the placeholder
     display: "block",
     width: "100%",
     height: "auto",
+    // Until the browser knows the photo's own shape, hold a portrait-shaped space for the placeholder
+    aspectRatio: "auto 2 / 3",
+    transition: `opacity ${FADE_IN_DURATION}s ease`,
+  },
+  placeholder: {
+    position: "absolute",
+    inset: 0,
+    // Hidden only once the photo has finished fading in over it (stops the shimmer too)
+    transition: `visibility 0s linear ${FADE_IN_DURATION}s`,
   },
   darken: {
     position: "absolute",

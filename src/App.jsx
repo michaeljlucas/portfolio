@@ -47,6 +47,8 @@ const DRIP_STEP_DURATION = 0.4;
 // new page fades up from white once the wipe has cleared
 const WHITEOUT_DURATION = 0.5;
 const WHITEOUT_EASE = "power1.inOut";
+// The wipe holds at its midpoint until the new page's on-screen images are ready, but never longer than this (ms)
+const IMAGE_WAIT_MAX = 4000;
 
 // "Open case study" hover (after the old site's Button): a dark fill with white text grows up from
 // the bottom of the pill, the pill grows a touch and the arrow slides right. Hovering the project's
@@ -716,11 +718,26 @@ function App() {
       },
     });
 
+    // Swaps the content, then holds the wipe there until the images in the first screen of the
+    // new page have loaded, so the page isn't revealed with its top image still popping in
+    const swapAndWait = () => {
+      swapContent();
+      const images = [...projectView.current.querySelectorAll('img')]
+        .filter((img) => img.getBoundingClientRect().top < window.innerHeight && !img.complete);
+      if (!images.length) return;
+
+      tl.pause();
+      Promise.race([
+        Promise.all(images.map((img) => img.decode().catch(() => {}))), // a broken image shouldn't hold it up
+        new Promise((resolve) => setTimeout(resolve, IMAGE_WAIT_MAX)),
+      ]).then(() => tl.resume());
+    };
+
     // Fade to white first; the wipe steps below are appended after this
     tl.fromTo(whiteout.current, { autoAlpha: 0 }, { autoAlpha: 1, duration: WHITEOUT_DURATION, ease: WHITEOUT_EASE });
 
     if (!wipe) {
-      tl.call(swapContent);
+      tl.call(swapAndWait);
     } else if (SWIPE_STYLE === "drip") {
       const path = dripPath.current;
       tl
@@ -729,7 +746,7 @@ function App() {
         .set(path, { morphSVG: DRIP_STEPS[0] })
         .to(path, { morphSVG: DRIP_STEPS[1], duration: DRIP_STEP_DURATION, ease: "none" })
         .to(path, { morphSVG: DRIP_STEPS[2], duration: DRIP_STEP_DURATION, ease: "power1.out" })
-        .call(swapContent)
+        .call(swapAndWait)
         // Uncover mirrors the cover: same distances and durations, eases reversed
         .to(path, { morphSVG: DRIP_STEPS[3], duration: DRIP_STEP_DURATION, ease: "power1.in" })
         .to(path, { morphSVG: DRIP_STEPS[4], duration: DRIP_STEP_DURATION, ease: "none" })
@@ -746,7 +763,7 @@ function App() {
           ease: SLIDE_EASE,
           stagger: SLIDE_STAGGER,
         })
-        .call(swapContent)
+        .call(swapAndWait)
         // Top slide leaves first so the bottom one is revealed before the content
         .to([...SLIDES].reverse(), {
           [SLIDE_PROP]: to,
